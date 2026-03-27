@@ -712,42 +712,59 @@
             continue;
           }
 
-          const res = await fetch('/paraphrase', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: para, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode }),
-          });
-
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Ralat pelayan tidak diketahui.' }));
-            throw new Error(err.error || 'Ralat pelayan.');
-          }
-
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder();
+          const MAX_RETRIES = 3;
+          const baseResult = fullResult; // snapshot before this paragraph
           let paraResult = '';
 
-          // Add paragraph separator before streaming new paragraph
-          if (fullResult) {
-            fullResult += '\n\n';
-            output.value = fullResult;
+          for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            if (attempt > 1) {
+              output.value = baseResult;
+              setStatus(`Mencuba semula perenggan ${i + 1} (percubaan ${attempt}/${MAX_RETRIES})...`, 'loading');
+              await new Promise(r => setTimeout(r, 2000));
+            }
+
+            const res = await fetch('/paraphrase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: para, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode }),
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ error: 'Ralat pelayan tidak diketahui.' }));
+              throw new Error(err.error || 'Ralat pelayan.');
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            paraResult = '';
+            const prefix = baseResult ? baseResult + '\n\n' : '';
+            output.value = prefix;
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              paraResult += chunk;
+              output.value = prefix + paraResult;
+              output.scrollTop = output.scrollHeight;
+              document.getElementById('outputCount').textContent = countWords(prefix + paraResult) + ' patah perkataan';
+            }
+
+            // API internal error — retry
+            if (paraResult.includes('[RALAT API')) {
+              if (attempt < MAX_RETRIES) continue;
+              throw new Error(paraResult.match(/\[RALAT[^\]]*\]/)?.[0] || 'Ralat API selepas 3 percubaan.');
+            }
+
+            // Other errors — don't retry
+            if (paraResult.includes('[RALAT')) {
+              throw new Error(paraResult.match(/\[RALAT[^\]]*\]/)?.[0] || 'Ralat semasa pemprosesan.');
+            }
+
+            break; // success
           }
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            paraResult += chunk;
-            output.value = fullResult + paraResult;
-            output.scrollTop = output.scrollHeight;
-            document.getElementById('outputCount').textContent = countWords(fullResult + paraResult) + ' patah perkataan';
-          }
-
-          if (paraResult.includes('[RALAT')) {
-            throw new Error(paraResult.match(/\[RALAT[^\]]*\]/)?.[0] || 'Ralat semasa pemprosesan.');
-          }
-
-          fullResult += paraResult;
+          fullResult = (baseResult ? baseResult + '\n\n' : '') + paraResult;
         }
 
         setStatus(`Selesai! ${total} perenggan diproses.`, 'done');
