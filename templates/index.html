@@ -702,16 +702,6 @@
           btnText.textContent = `${i + 1}/${total}`;
           setStatus(`Memproses perenggan ${i + 1} daripada ${total}...`, 'loading');
 
-          // Skip short lines (headings, labels) — pass through as-is
-          if (para.split(/\s+/).length < 10) {
-            if (fullResult) fullResult += '\n\n';
-            fullResult += para;
-            output.value = fullResult;
-            output.scrollTop = output.scrollHeight;
-            document.getElementById('outputCount').textContent = countWords(fullResult) + ' patah perkataan';
-            continue;
-          }
-
           const MAX_RETRIES = 3;
           const baseResult = fullResult; // snapshot before this paragraph
           let paraResult = '';
