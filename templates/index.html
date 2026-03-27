@@ -317,6 +317,121 @@
 
     .btn-icon:hover { background: var(--border); color: var(--text); }
 
+    /* Mode selector */
+    .mode-selector {
+      width: 100%;
+      max-width: 960px;
+      margin-bottom: 16px;
+    }
+
+    .mode-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mode-btn {
+      position: relative;
+      flex: 1;
+      min-width: 150px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .mode-btn:hover { background: var(--surface2); }
+
+    .mode-btn.active {
+      border-color: var(--primary);
+      background: #f0eeff;
+    }
+
+    .mode-btn-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-btn.active .mode-btn-title { color: var(--primary); }
+
+    .mode-btn-desc {
+      font-size: 0.73rem;
+      color: var(--muted);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    /* Tooltip */
+    .tooltip-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .tooltip-icon {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+      flex-shrink: 0;
+    }
+
+    .tooltip-box {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e2e;
+      color: #fff;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      padding: 8px 12px;
+      border-radius: 8px;
+      width: 220px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 100;
+      white-space: normal;
+    }
+
+    .tooltip-box::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #1e1e2e;
+    }
+
+    .tooltip-wrap:hover .tooltip-box { opacity: 1; }
+
     /* Status bar */
     .statusbar {
       width: 100%;
@@ -389,6 +504,47 @@
     </div>
   </div>
 
+  <!-- Mode selector -->
+  <div class="mode-selector">
+    <div class="mode-label">Mod Parafrasa</div>
+    <div class="mode-buttons">
+
+      <button class="mode-btn active" onclick="setMode('formal')" id="mode-formal">
+        <div class="mode-btn-title">
+          🎓 Akademik Formal
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">Laras bahasa tinggi dan baku — sesuai untuk esei, laporan, tesis, dan tugasan universiti yang memerlukan nada rasmi.</span>
+          </span>
+        </div>
+        <div class="mode-btn-desc">Nada rasmi, baku, laras tinggi</div>
+      </button>
+
+      <button class="mode-btn" onclick="setMode('semiformal')" id="mode-semiformal">
+        <div class="mode-btn-title">
+          📝 Semi-Formal
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">Bahasa profesional tetapi lebih mudah dibaca — sesuai untuk artikel jurnal, blog akademik, atau laporan yang tidak terlalu teknikal.</span>
+          </span>
+        </div>
+        <div class="mode-btn-desc">Profesional tapi lebih mudah dibaca</div>
+      </button>
+
+      <button class="mode-btn" onclick="setMode('auto')" id="mode-auto">
+        <div class="mode-btn-title">
+          🔄 Ikut Teks Asal
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">AI akan menganalisis gaya teks anda — nada, laras, dan struktur ayat — lalu mengekalkan gaya yang sama dalam hasil parafrasa.</span>
+          </span>
+        </div>
+        <div class="mode-btn-desc">AI tiru gaya teks yang ditampal</div>
+      </button>
+
+    </div>
+  </div>
+
   <!-- Main panels -->
   <div class="grid">
     <div class="card">
@@ -422,6 +578,15 @@
   </div>
 
   <script>
+    // --- Mode selector ---
+    let selectedMode = 'formal';
+
+    function setMode(mode) {
+      selectedMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('mode-' + mode).classList.add('active');
+    }
+
     // --- Protected words detection ---
     const TECHNICAL_TERMS = [
       // Education
@@ -547,7 +712,7 @@
         const res = await fetch('/paraphrase', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: input, style_sample: styleSample, protected_words: protectedWords }),
+          body: JSON.stringify({ text: input, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode }),
         });
 
         if (!res.ok) {

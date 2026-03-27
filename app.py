@@ -15,17 +15,41 @@ limiter = Limiter(
 
 MAX_INPUT_CHARS = 8000  # ~2000 words, safe limit before token issues
 
-BASE_SYSTEM_PROMPT = """Anda adalah penulis akademik Bahasa Malaysia yang berpengalaman. Tugas anda adalah menulis semula teks akademik yang diberikan supaya ia berbeza dari segi frasa dan struktur ayat, tetapi mengekalkan makna asal sepenuhnya.
+PROMPTS = {
+    "formal": """Anda adalah penulis akademik Bahasa Malaysia yang berpengalaman. Tugas anda adalah menulis semula teks yang diberikan dalam laras bahasa akademik formal yang tinggi, dengan frasa dan struktur ayat yang berbeza, tetapi mengekalkan makna asal sepenuhnya.
 
-Panduan penting:
-- Utamakan kelancaran dan keselesaan pembacaan — teks mesti kedengaran semula jadi, bukan terjemahan atau dipaksa
-- Ubah struktur ayat: tukar ayat aktif kepada pasif atau sebaliknya, gabungkan atau pecahkan ayat panjang
-- Gantikan perkataan dengan sinonim yang LAZIM digunakan dalam penulisan akademik Melayu — elakkan perkataan yang janggal atau jarang digunakan
-- Susun semula urutan maklumat dalam ayat jika sesuai
-- Kekalkan laras bahasa akademik dan formal sepanjang masa
-- Istilah teknikal, nama, angka, dan kata pinjaman (seperti "faktor", "analisis", "konsep") — kekalkan sahaja, jangan gantikan dengan padanan yang pelik
+Panduan:
+- Utamakan kelancaran pembacaan — teks mesti kedengaran semula jadi, bukan dipaksa
+- Gunakan laras bahasa tinggi dan baku sepanjang masa
+- Ubah struktur ayat: aktif-pasif, gabung atau pecah ayat panjang, susun semula urutan maklumat
+- Gantikan perkataan dengan sinonim yang LAZIM dalam penulisan akademik Melayu — elakkan perkataan janggal atau jarang digunakan
+- Istilah teknikal, nama, angka, dan kata pinjaman — kekalkan sahaja
 - Output MESTI dalam Bahasa Malaysia sahaja
-- Hanya kembalikan teks yang telah ditulis semula, tanpa sebarang ulasan, nota, atau penjelasan"""
+- Hanya kembalikan teks yang telah ditulis semula, tanpa sebarang ulasan atau penjelasan""",
+
+    "semiformal": """Anda adalah penulis profesional Bahasa Malaysia. Tugas anda adalah menulis semula teks yang diberikan dalam gaya semi-formal — profesional dan jelas, tetapi lebih mudah dibaca berbanding penulisan akademik berat — sambil mengekalkan makna asal sepenuhnya.
+
+Panduan:
+- Utamakan kejelasan dan kelancaran — pembaca mesti faham dengan mudah
+- Gunakan ayat yang lebih ringkas dan terus daripada teks asal jika boleh
+- Gantikan frasa akademik berat dengan frasa yang lebih natural tetapi masih profesional
+- Gunakan ayat aktif lebih banyak daripada pasif untuk meningkatkan kejelasan
+- Elakkan jargon yang tidak perlu — jika boleh dipermudah tanpa hilang makna, permudahkan
+- Istilah teknikal, nama, angka — kekalkan sahaja
+- Output MESTI dalam Bahasa Malaysia sahaja
+- Hanya kembalikan teks yang telah ditulis semula, tanpa sebarang ulasan atau penjelasan""",
+
+    "auto": """Anda adalah penulis Bahasa Malaysia yang mahir. Tugas anda adalah menulis semula teks yang diberikan dengan frasa dan struktur ayat yang berbeza, tetapi mengekalkan makna asal DAN gaya penulisan asal sepenuhnya.
+
+Panduan:
+- ANALISIS teks asal terlebih dahulu: perhatikan larasnya (formal/semi-formal), panjang ayat, pilihan perkataan, dan nadanya
+- Kekalkan laras, nada, dan kerumitan yang SAMA seperti teks asal — jangan naikkan atau turunkan tahap formaliti
+- Ubah struktur ayat dan pilihan perkataan sahaja, bukan gaya keseluruhannya
+- Gantikan perkataan dengan sinonim yang sesuai dengan tahap teks asal
+- Istilah teknikal, nama, angka — kekalkan sahaja
+- Output MESTI dalam Bahasa Malaysia sahaja
+- Hanya kembalikan teks yang telah ditulis semula, tanpa sebarang ulasan atau penjelasan"""
+}
 
 STYLE_ADDON = """
 Selain itu, anda telah diberikan contoh gaya penulisan seseorang. Tiru gaya penulisan tersebut — termasuk cara pembinaan ayat, pilihan perkataan, panjang ayat, dan nada penulisan — tetapi JANGAN ubah maksud teks asal."""
@@ -77,6 +101,7 @@ def paraphrase():
     text = data.get("text", "").strip()
     style_sample = data.get("style_sample", "").strip()
     protected_words = data.get("protected_words", [])
+    mode = data.get("mode", "formal") if data.get("mode") in PROMPTS else "formal"
 
     # Validate input
     if not text:
@@ -91,7 +116,7 @@ def paraphrase():
         return jsonify({"error": err}), 500
 
     # Build system prompt
-    system_prompt = BASE_SYSTEM_PROMPT
+    system_prompt = PROMPTS[mode]
 
     if protected_words:
         protected_list = "\n".join(f"- {w}" for w in protected_words[:50])  # cap at 50
