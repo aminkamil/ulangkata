@@ -1,8 +1,17 @@
 from flask import Flask, render_template, request, Response, stream_with_context, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import anthropic
 import os
 
 app = Flask(__name__)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["30 per hour", "5 per minute"],
+    storage_uri="memory://"
+)
 
 MAX_INPUT_CHARS = 8000  # ~2000 words, safe limit before token issues
 
@@ -47,7 +56,13 @@ def health():
     return jsonify({"status": "ok"})
 
 
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({"error": "Terlalu banyak permintaan. Sila cuba lagi sebentar."}), 429
+
+
 @app.route("/paraphrase", methods=["POST"])
+@limiter.limit("5 per minute; 30 per hour")
 def paraphrase():
     # Validate request body
     if not request.is_json:
