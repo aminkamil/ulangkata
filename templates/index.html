@@ -623,6 +623,13 @@
       return [...found];
     }
 
+    // --- Context snippet (last 3 sentences) ---
+    function getContextSnippet(text) {
+      if (!text) return '';
+      const sentences = text.match(/[^.!?]*[.!?]+/g) || [];
+      return sentences.slice(-3).join(' ').trim() || text.slice(-400);
+    }
+
     // --- Bibliography detection ---
     function isBibliographyEntry(para) {
       // APA: "Lastname, F. (2020)." or "Lastname, F. F. (2020)."
@@ -706,6 +713,7 @@
       document.getElementById('outputCount').textContent = '0 patah perkataan';
       btn.disabled = true;
       let fullResult = '';
+      let prevContext = '';
 
       try {
         for (let i = 0; i < paragraphs.length; i++) {
@@ -737,7 +745,7 @@
             const res = await fetch('/paraphrase', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ text: para, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode }),
+              body: JSON.stringify({ text: para, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode, context: prevContext }),
             });
 
             if (!res.ok) {
@@ -776,6 +784,7 @@
           }
 
           fullResult = (baseResult ? baseResult + '\n\n' : '') + paraResult;
+          prevContext = getContextSnippet(paraResult);
         }
 
         setStatus(`Selesai! ${total} perenggan diproses.`, 'done');

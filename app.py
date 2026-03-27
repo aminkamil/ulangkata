@@ -102,6 +102,7 @@ def paraphrase():
     style_sample = data.get("style_sample", "").strip()
     protected_words = data.get("protected_words", [])
     mode = data.get("mode", "formal") if data.get("mode") in PROMPTS else "formal"
+    context = data.get("context", "").strip()
 
     # Validate input
     if not text:
@@ -129,6 +130,9 @@ def paraphrase():
     user_message = text
     if style_sample:
         user_message = f"Contoh gaya penulisan:\n{style_sample}\n\n---\n\nTeks untuk ditulis semula:\n{text}"
+
+    if context:
+        user_message = f"[Konteks perenggan sebelumnya — untuk rujukan sahaja, JANGAN parafrasa ini]:\n{context}\n\n---\n\n{user_message}"
 
     def generate():
         try:
