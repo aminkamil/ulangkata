@@ -702,8 +702,8 @@
           btnText.textContent = `${i + 1}/${total}`;
           setStatus(`Memproses perenggan ${i + 1} daripada ${total}...`, 'loading');
 
-          // Skip very short lines (headings, single words) — pass through as-is
-          if (para.split(/\s+/).length < 5) {
+          // Skip short lines (headings, labels) — pass through as-is
+          if (para.split(/\s+/).length < 10) {
             if (fullResult) fullResult += '\n\n';
             fullResult += para;
             output.value = fullResult;
