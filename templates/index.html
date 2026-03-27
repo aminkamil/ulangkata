@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UlangKata — Alat Parafrasa Akademik Bahasa Malaysia</title>
+  <style>
+    :root {
+      --primary: #5b50e8;
+      --primary-dark: #4840c4;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --surface2: #f0f1f7;
+      --border: #e2e4ef;
+      --text: #1e1e2e;
+      --muted: #7b7b9a;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #5b50e8, #7c6ff7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-purple { background: #ede9ff; color: #5b50e8; border: 1px solid #c4beff; }
+    .badge-green  { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
+    .badge-amber  { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+
+    /* Style sample panel */
+    .style-card {
+      width: 100%;
+      max-width: 960px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .style-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .style-header:hover { background: var(--surface2); }
+
+    .style-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .style-icon {
+      width: 28px; height: 28px;
+      background: #ede9ff;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    .style-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .style-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .active-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      display: none;
+    }
+
+    .active-dot.show { display: block; }
+
+    .chevron {
+      color: var(--muted);
+      font-size: 11px;
+      transition: transform 0.2s;
+    }
+
+    .chevron.open { transform: rotate(180deg); }
+
+    .style-body {
+      display: none;
+      padding: 0 18px 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .style-body.open { display: block; }
+
+    .style-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 12px 0 10px;
+    }
+
+    /* Main grid */
+    .grid {
+      width: 100%;
+      max-width: 960px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 680px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-label span {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .word-count {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    textarea {
+      width: 100%;
+      height: 280px;
+      background: #fafafa;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      resize: vertical;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      color: #1e1e2e;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    textarea::placeholder { color: #b0b0c8; font-family: 'Segoe UI', system-ui, sans-serif; }
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px #5b50e815; }
+    textarea[readonly] { cursor: default; background: #f7f8ff; }
+
+    /* Protected words */
+    .protected-section {
+      width: 100%;
+      max-width: 960px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .protected-section.show { display: block; }
+
+    .protected-box {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+    }
+
+    .protected-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .protected-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .protected-tag {
+      font-size: 0.78rem;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: monospace;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 10px;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-secondary:hover { background: var(--border); }
+
+    .btn-icon {
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-icon:hover { background: var(--border); color: var(--text); }
+
+    /* Status bar */
+    .statusbar {
+      width: 100%;
+      max-width: 960px;
+      margin-top: 12px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-dot.loading { background: var(--primary); animation: pulse 1s infinite; }
+    .status-dot.done    { background: var(--success); }
+    .status-dot.error   { background: var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .status-text { color: var(--muted); }
+    .status-text.loading { color: #a78bfa; }
+    .status-text.done    { color: var(--success); }
+    .status-text.error   { color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>UlangKata</h1>
+    <p>Alat parafrasa akademik khusus untuk Bahasa Malaysia</p>
+    <div class="badges">
+      <span class="badge badge-purple">BM Akademik</span>
+      <span class="badge badge-green">Ikut Gaya Penulisan</span>
+      <span class="badge badge-amber">Lindungi Istilah Teknikal</span>
+    </div>
+  </div>
+
+  <!-- Style sample -->
+  <div class="style-card">
+    <div class="style-header" onclick="toggleStyle()">
+      <div class="style-header-left">
+        <div class="style-icon">✍️</div>
+        <div>
+          <div class="style-title">Contoh Gaya Penulisan <span class="active-dot" id="activeDot"></span></div>
+          <div class="style-desc">Tiru cara penulisan tertentu dalam hasil parafrasa</div>
+        </div>
+      </div>
+      <span class="chevron" id="chevron">▼</span>
+    </div>
+    <div class="style-body" id="styleBody">
+      <p class="style-hint">Tampal 3–5 ayat sebagai contoh gaya penulisan. Hasil parafrasa akan mengikut struktur ayat, pilihan perkataan, dan nada penulisan tersebut.</p>
+      <textarea id="style-sample" style="height:110px" placeholder="Contoh: 'Kajian ini bertujuan untuk mengkaji hubungan antara amalan pengajaran guru dengan pencapaian murid...'"></textarea>
+    </div>
+  </div>
+
+  <!-- Protected words warning -->
+  <div class="protected-section" id="protectedSection">
+    <div class="protected-box">
+      <div class="protected-title">⚠️ Perkataan berikut tidak akan diubah</div>
+      <div class="protected-tags" id="protectedTags"></div>
+    </div>
+  </div>
+
+  <!-- Main panels -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">
+        <span>Teks Asal</span>
+        <span class="word-count" id="inputCount">0 patah perkataan</span>
+      </div>
+      <textarea id="input" placeholder="Tampal teks akademik anda di sini..."></textarea>
+      <button class="btn-primary" id="paraphraseBtn" onclick="paraphrase()">
+        <span id="btnIcon">✦</span>
+        <span id="btnText">Parafrasa</span>
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">
+        <span>Hasil Parafrasa</span>
+        <span class="word-count" id="outputCount">0 patah perkataan</span>
+      </div>
+      <textarea id="output" readonly placeholder="Hasil parafrasa akan muncul di sini..."></textarea>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="copyOutput()">📋 Salin</button>
+        <button class="btn-icon" onclick="clearAll()" title="Padam semua">🗑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText"></span>
+  </div>
+
+  <script>
+    // --- Protected words detection ---
+    const TECHNICAL_TERMS = [
+      // Education
+      'konstruktivisme','konstruktivis','behaviorisme','kognitivisme','humanisme',
+      'kurikulum','pedagogi','andragogi','taksonomi','psikomotor','afektif','kognitif',
+      'KSSR','KSSM','DSKP','PBS','PdP','PdPR','PPPM','JERI',
+      // Subjects
+      'Pendidikan Seni Visual','Pendidikan Islam','Pendidikan Moral','Pendidikan Jasmani',
+      'Pendidikan Muzik','Bahasa Melayu','Bahasa Malaysia','Matematik','Sains',
+      // Institutions
+      'Kementerian Pendidikan Malaysia','KPM','JPT','JPN','PPD','IPG','UPSI','UPM','UTM','UM','UKM',
+      // Research terms
+      'triangulasi','phenomenologi','etnografi','grounded theory','epistemologi','ontologi',
+      // Places
+      'Sabah','Sarawak','Malaysia','Kuala Lumpur','Putrajaya','Labuan',
+    ];
+
+    const CITATION_REGEX = /\([A-Z][^)]*\d{4}[a-z]?\)/g;
+
+    function detectProtectedWords(text) {
+      const found = new Set();
+
+      // Citations
+      const citations = text.match(CITATION_REGEX) || [];
+      citations.forEach(c => found.add(c));
+
+      // Technical terms (case-insensitive match, preserve original case)
+      TECHNICAL_TERMS.forEach(term => {
+        const regex = new RegExp(`\\b${term}\\b`, 'gi');
+        const matches = text.match(regex) || [];
+        matches.forEach(m => found.add(m));
+      });
+
+      return [...found];
+    }
+
+    // --- Word count ---
+    function countWords(text) {
+      return text.trim() ? text.trim().split(/\s+/).length : 0;
+    }
+
+    document.getElementById('input').addEventListener('input', function () {
+      document.getElementById('inputCount').textContent = countWords(this.value) + ' patah perkataan';
+      updateProtectedWords(this.value);
+    });
+
+    document.getElementById('output').addEventListener('input', function () {
+      document.getElementById('outputCount').textContent = countWords(this.value) + ' patah perkataan';
+    });
+
+    function updateProtectedWords(text) {
+      const words = detectProtectedWords(text);
+      const section = document.getElementById('protectedSection');
+      const tags = document.getElementById('protectedTags');
+
+      if (words.length === 0) {
+        section.classList.remove('show');
+        return;
+      }
+
+      section.classList.add('show');
+      tags.innerHTML = words.map(w => `<span class="protected-tag">${w}</span>`).join('');
+    }
+
+    // --- Style toggle ---
+    function toggleStyle() {
+      document.getElementById('styleBody').classList.toggle('open');
+      document.getElementById('chevron').classList.toggle('open');
+    }
+
+    document.getElementById('style-sample').addEventListener('input', function () {
+      document.getElementById('activeDot').classList.toggle('show', this.value.trim().length > 0);
+    });
+
+    // --- Health check on load ---
+    const MAX_CHARS = 8000;
+
+    window.addEventListener('load', async () => {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        if (data.status !== 'ok') {
+          setStatus('⚠️ API key tidak dijumpai. Sila tetapkan ANTHROPIC_API_KEY.', 'error');
+        }
+      } catch {
+        setStatus('⚠️ Tidak dapat menyambung ke pelayan.', 'error');
+      }
+    });
+
+    // --- Char limit warning ---
+    document.getElementById('input').addEventListener('input', function () {
+      const len = this.value.length;
+      if (len > MAX_CHARS * 0.9) {
+        setStatus(`Hampir had: ${len}/${MAX_CHARS} aksara`, 'error');
+      } else {
+        setStatus('', '');
+      }
+    });
+
+    // --- Paraphrase ---
+    async function paraphrase() {
+      const input = document.getElementById('input').value.trim();
+      const styleSample = document.getElementById('style-sample').value.trim();
+      const output = document.getElementById('output');
+      const btn = document.getElementById('paraphraseBtn');
+      const btnText = document.getElementById('btnText');
+
+      if (!input) { setStatus('Sila masukkan teks terlebih dahulu.', 'error'); return; }
+      if (input.length > MAX_CHARS) {
+        setStatus(`Teks terlalu panjang (${input.length}/${MAX_CHARS} aksara). Sila bahagikan kepada bahagian lebih kecil.`, 'error');
+        return;
+      }
+
+      const protectedWords = detectProtectedWords(input);
+
+      output.value = '';
+      document.getElementById('outputCount').textContent = '0 patah perkataan';
+      btn.disabled = true;
+      btnText.textContent = 'Memproses...';
+      setStatus(styleSample ? 'Memproses dengan gaya penulisan...' : 'Sedang memproses...', 'loading');
+
+      try {
+        const res = await fetch('/paraphrase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: input, style_sample: styleSample, protected_words: protectedWords }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Ralat pelayan tidak diketahui.' }));
+          throw new Error(err.error || 'Ralat pelayan.');
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let result = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          result += chunk;
+          output.value = result;
+          output.scrollTop = output.scrollHeight;
+          document.getElementById('outputCount').textContent = countWords(result) + ' patah perkataan';
+        }
+
+        // Check if the stream returned an error message
+        if (result.includes('[RALAT')) {
+          setStatus(result.match(/\[RALAT[^\]]*\]/)?.[0] || 'Ralat semasa pemprosesan.', 'error');
+        } else {
+          setStatus('Selesai!', 'done');
+        }
+
+      } catch (err) {
+        setStatus(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Parafrasa';
+      }
+    }
+
+    function copyOutput() {
+      const val = document.getElementById('output').value;
+      if (!val) return;
+      navigator.clipboard.writeText(val).then(() => {
+        setStatus('Disalin ke papan klip!', 'done');
+        setTimeout(() => setStatus('', ''), 2000);
+      });
+    }
+
+    function clearAll() {
+      document.getElementById('input').value = '';
+      document.getElementById('output').value = '';
+      document.getElementById('style-sample').value = '';
+      document.getElementById('inputCount').textContent = '0 patah perkataan';
+      document.getElementById('outputCount').textContent = '0 patah perkataan';
+      document.getElementById('activeDot').classList.remove('show');
+      document.getElementById('protectedSection').classList.remove('show');
+      setStatus('', '');
+    }
+
+    function setStatus(msg, type) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      dot.className = 'status-dot ' + type;
+      text.className = 'status-text ' + type;
+      text.textContent = msg;
+    }
+  </script>
+</body>
+</html>
