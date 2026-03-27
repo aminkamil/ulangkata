@@ -133,7 +133,7 @@ def paraphrase():
     def generate():
         try:
             with client.messages.stream(
-                model="claude-opus-4-6",
+                model="claude-sonnet-4-6",
                 max_tokens=4096,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
