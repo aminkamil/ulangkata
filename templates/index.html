@@ -623,6 +623,17 @@
       return [...found];
     }
 
+    // --- Bibliography detection ---
+    function isBibliographyEntry(para) {
+      // APA: "Lastname, F. (2020)." or "Lastname, F. F. (2020)."
+      if (/^[A-Z][^(,]{1,40},\s+[A-Z]\..*\(\d{4}\)/.test(para)) return true;
+      // Numbered reference: "1. Author..." or "1) Author..."
+      if (/^\d+[\.)]\s+[A-Z]/.test(para)) return true;
+      // DOI
+      if (/doi:\s*10\.|https?:\/\/doi\.org/.test(para)) return true;
+      return false;
+    }
+
     // --- Word count ---
     function countWords(text) {
       return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -701,6 +712,16 @@
           const para = paragraphs[i];
           btnText.textContent = `${i + 1}/${total}`;
           setStatus(`Memproses perenggan ${i + 1} daripada ${total}...`, 'loading');
+
+          // Skip bibliography/reference entries — pass through as-is
+          if (isBibliographyEntry(para)) {
+            if (fullResult) fullResult += '\n\n';
+            fullResult += para;
+            output.value = fullResult;
+            output.scrollTop = output.scrollHeight;
+            document.getElementById('outputCount').textContent = countWords(fullResult) + ' patah perkataan';
+            continue;
+          }
 
           const MAX_RETRIES = 3;
           const baseResult = fullResult; // snapshot before this paragraph
