@@ -135,25 +135,40 @@ def paraphrase():
         user_message = f"[Konteks perenggan sebelumnya — untuk rujukan sahaja, JANGAN parafrasa ini]:\n{context}\n\n---\n\n{user_message}"
 
     def generate():
-        try:
-            with client.messages.stream(
-                model="claude-opus-4-6",
-                max_tokens=4096,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_message}],
-            ) as stream:
-                for chunk in stream.text_stream:
-                    yield chunk
-        except anthropic.AuthenticationError:
-            yield "\n\n[RALAT: API key tidak sah. Sila semak ANTHROPIC_API_KEY anda.]"
-        except anthropic.RateLimitError:
-            yield "\n\n[RALAT: Had kadar API telah dicapai. Sila cuba sebentar lagi.]"
-        except anthropic.APIConnectionError:
-            yield "\n\n[RALAT: Gagal menyambung ke API. Sila semak sambungan internet anda.]"
-        except anthropic.APIStatusError as e:
-            yield f"\n\n[RALAT API {e.status_code}: {e.message}]"
-        except Exception as e:
-            yield f"\n\n[RALAT: {str(e)}]"
+        models = ["claude-opus-4-6", "claude-sonnet-4-6"]
+        for i, model in enumerate(models):
+            content_yielded = False
+            try:
+                with client.messages.stream(
+                    model=model,
+                    max_tokens=4096,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_message}],
+                ) as stream:
+                    for chunk in stream.text_stream:
+                        content_yielded = True
+                        yield chunk
+                return
+            except anthropic.AuthenticationError:
+                yield "\n\n[RALAT: API key tidak sah. Sila semak ANTHROPIC_API_KEY anda.]"
+                return
+            except anthropic.RateLimitError:
+                yield "\n\n[RALAT: Had kadar API telah dicapai. Sila cuba sebentar lagi.]"
+                return
+            except anthropic.APIConnectionError:
+                yield "\n\n[RALAT: Gagal menyambung ke API. Sila semak sambungan internet anda.]"
+                return
+            except anthropic.APIStatusError as e:
+                is_overloaded = e.status_code == 529 or 'overloaded' in str(e.message).lower()
+                if is_overloaded and not content_yielded and i < len(models) - 1:
+                    continue  # fallback to Sonnet
+                if not content_yielded:
+                    yield f"\n\n[RALAT API {e.status_code}: {e.message}]"
+                return
+            except Exception as e:
+                if not content_yielded:
+                    yield f"\n\n[RALAT: {str(e)}]"
+                return
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
