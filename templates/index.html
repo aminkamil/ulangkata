@@ -676,17 +676,7 @@
       }
     });
 
-    // --- Char limit warning ---
-    document.getElementById('input').addEventListener('input', function () {
-      const len = this.value.length;
-      if (len > MAX_CHARS * 0.9) {
-        setStatus(`Hampir had: ${len}/${MAX_CHARS} aksara`, 'error');
-      } else {
-        setStatus('', '');
-      }
-    });
-
-    // --- Paraphrase ---
+    // --- Paraphrase (paragraph-by-paragraph) ---
     async function paraphrase() {
       const input = document.getElementById('input').value.trim();
       const styleSample = document.getElementById('style-sample').value.trim();
@@ -695,51 +685,72 @@
       const btnText = document.getElementById('btnText');
 
       if (!input) { setStatus('Sila masukkan teks terlebih dahulu.', 'error'); return; }
-      if (input.length > MAX_CHARS) {
-        setStatus(`Teks terlalu panjang (${input.length}/${MAX_CHARS} aksara). Sila bahagikan kepada bahagian lebih kecil.`, 'error');
-        return;
-      }
 
+      // Split into paragraphs (one or more blank lines as separator)
+      const paragraphs = input.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+      const total = paragraphs.length;
       const protectedWords = detectProtectedWords(input);
 
       output.value = '';
       document.getElementById('outputCount').textContent = '0 patah perkataan';
       btn.disabled = true;
-      btnText.textContent = 'Memproses...';
-      setStatus(styleSample ? 'Memproses dengan gaya penulisan...' : 'Sedang memproses...', 'loading');
+      let fullResult = '';
 
       try {
-        const res = await fetch('/paraphrase', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: input, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode }),
-        });
+        for (let i = 0; i < paragraphs.length; i++) {
+          const para = paragraphs[i];
+          btnText.textContent = `${i + 1}/${total}`;
+          setStatus(`Memproses perenggan ${i + 1} daripada ${total}...`, 'loading');
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Ralat pelayan tidak diketahui.' }));
-          throw new Error(err.error || 'Ralat pelayan.');
+          // Skip very short lines (headings, single words) — pass through as-is
+          if (para.split(/\s+/).length < 5) {
+            if (fullResult) fullResult += '\n\n';
+            fullResult += para;
+            output.value = fullResult;
+            output.scrollTop = output.scrollHeight;
+            document.getElementById('outputCount').textContent = countWords(fullResult) + ' patah perkataan';
+            continue;
+          }
+
+          const res = await fetch('/paraphrase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: para, style_sample: styleSample, protected_words: protectedWords, mode: selectedMode }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: 'Ralat pelayan tidak diketahui.' }));
+            throw new Error(err.error || 'Ralat pelayan.');
+          }
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let paraResult = '';
+
+          // Add paragraph separator before streaming new paragraph
+          if (fullResult) {
+            fullResult += '\n\n';
+            output.value = fullResult;
+          }
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            paraResult += chunk;
+            output.value = fullResult + paraResult;
+            output.scrollTop = output.scrollHeight;
+            document.getElementById('outputCount').textContent = countWords(fullResult + paraResult) + ' patah perkataan';
+          }
+
+          if (paraResult.includes('[RALAT')) {
+            throw new Error(paraResult.match(/\[RALAT[^\]]*\]/)?.[0] || 'Ralat semasa pemprosesan.');
+          }
+
+          fullResult += paraResult;
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let result = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          result += chunk;
-          output.value = result;
-          output.scrollTop = output.scrollHeight;
-          document.getElementById('outputCount').textContent = countWords(result) + ' patah perkataan';
-        }
-
-        // Check if the stream returned an error message
-        if (result.includes('[RALAT')) {
-          setStatus(result.match(/\[RALAT[^\]]*\]/)?.[0] || 'Ralat semasa pemprosesan.', 'error');
-        } else {
-          setStatus('Selesai!', 'done');
-        }
+        setStatus(`Selesai! ${total} perenggan diproses.`, 'done');
 
       } catch (err) {
         setStatus(err.message, 'error');
